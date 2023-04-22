@@ -1,0 +1,88 @@
+# WorkFlow para o fluxo de trabalho CI/CD de um Projeto React. Começa automaticamente e 
+# executa uma série de etapas, que incluem clonar o repositório, instalar as dependências,
+# testar o código, e implantar
+# no Google Cloud. 
+#
+# Nesse exemplo, o workflow é acionado toda vez que um push é feito para a branch "main", 
+# e ele consiste em um único job chamado "testes". Esse job roda em uma máquina virtual com 
+# sistema operacional Ubuntu e é composto por três steps: checkout do repositório, instalação 
+# das dependências e execução dos testes.
+#
+# Para que a equipe possa fazer mudanças no projeto em Front/React, eles precisam ter acesso de 
+# escrita ao repositório. Para conceder acesso, o proprietário ou administrador deve acessar as
+# configurações do repositório no GitHub, selecionar a aba "Manage access" e adicionar os usuários 
+# ou equipes que deseja conceder acesso.
+#
+# Para criar um pull request, o desenvolvedor precisa criar uma branch com as mudanças que deseja
+# incorporar e, em seguida, solicitar a integração dessa branch à branch de destino por meio do 
+# botão "Create Pull Request" no GitHub. Já para fazer um push, o desenvolvedor pode utilizar o 
+# comando git push em sua máquina local para enviar as mudanças para o repositório remoto no GitHub.
+# Uma vez que o push ou pull request é feito, o workflow configurado será acionado automaticamente
+#
+# Os desenvolvedores podem acompanhar o progresso do workflow na página "Actions" do repositório,
+# e receber notificações sobre erros ou falhas nas tarefas executadas. Com isso, eles podem corrigir
+# as alterações e tentar novamente, garantindo que o código esteja sempre em um estado funcional e 
+# seguro.
+#
+# Detalhe: o workflow se encontra dentro da pasta raiz do projeto, não é uma boa prática criar workflow´s
+# fora da pasta raiz, visto que deverá especificar a "ref:" e o "path:", e mesmo assim poderá ter conflitos
+# e erros, além de dificultar o gerenciamento do projeto entre os Devs.
+
+name: CI/CD Projeto React
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_HOSTNAME: ${{ secrets.SSH_HOSTNAME }}
+  SSH_PORT: ${{ secrets.SSH_PORT }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Deploy to Google Cloud
+        uses: appleboy/ssh-action@master
+        with:
+          ssh-private-key: ${{ env.SSH_PRIVATE_KEY }}
+          ssh-public-key: ${{ env.SSH_PUBLIC_KEY }}
+          username: ${{ env.SSH_USERNAME }}
+          host: ${{ env.SSH_HOSTNAME }}
+          port: ${{ env.SSH_PORT }}
+          script: |
+            cd /path/to/project
+            git pull
+            npm install
+            npm test
+            
+# O código acima é um exemplo de um fluxo de trabalho de CI/CD para uma aplicação React em que, quando 
+# um desenvolvedor faz uma alteração no branch "main" e envia um pull request, o código é construído e 
+# testado no Ubuntu-latest. Se os testes forem bem-sucedidos, o código é implantado no Google Cloud. 
+# O uso do "actions/checkout@v3" garante que o código mais recente do branch "main" seja recuperado. 
+# As etapas "Install dependencies" e "Run tests" são executadas para instalar as dependências necessárias 
+# e executar os testes da aplicação. E finalmente, a etapa "Deploy to Google Cloud" usa a ação 
+# "appleboy/ssh-action@master" para implantar o código no Google Cloud por meio do SSH.
+#
+# O comando "npm test" geralmente é definido no arquivo "package.json" da sua aplicação React e é usado 
+# para executar os testes definidos pelo desenvolvedor. Por exemplo, por padrão, ele executa o test runner 
+# "jest", que é uma biblioteca popular para escrever testes em JavaScript.
+#
+# "appleboy/ssh-action@master" é uma ação disponível no marketplace do GitHub que permite executar comandos 
+# em um servidor remoto por meio do protocolo SSH. essa ação é usada para implantar a aplicação React no 
+# Google Cloud. A ação se conecta ao servidor remoto usando as informações de conexão SSH fornecidas nas 
+# variáveis de ambiente do fluxo de trabalho e executa um script que atualiza o código para a versão mais 
+# recente, instala as dependências necessárias e executa os testes novamente no servidor remoto.
