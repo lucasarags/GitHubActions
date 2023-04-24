@@ -1,7 +1,6 @@
 # WorkFlow para o fluxo de trabalho CI/CD de um Projeto React. Começa automaticamente e 
 # executa uma série de etapas, que incluem clonar o repositório, instalar as dependências,
-# testar o código, e implantar
-# no Google Cloud. 
+# testar o código, e implantar no Google Cloud. 
 #
 # Nesse exemplo, o workflow é acionado toda vez que um push é feito para a branch "main", 
 # e ele consiste em um único job chamado "testes". Esse job roda em uma máquina virtual com 
@@ -31,43 +30,39 @@
 name: CI/CD Projeto React
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-env:
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-  SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
-  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-  SSH_HOSTNAME: ${{ secrets.SSH_HOSTNAME }}
-  SSH_PORT: ${{ secrets.SSH_PORT }}
-
+    branches: 
+    - main
+    
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-
+      - name: checkout code
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: npm install
-
       - name: Run tests
-        run: npm test
-
+        run: npm run test
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to Google Cloud
         uses: appleboy/ssh-action@master
         with:
-          ssh-private-key: ${{ env.SSH_PRIVATE_KEY }}
-          ssh-public-key: ${{ env.SSH_PUBLIC_KEY }}
-          username: ${{ env.SSH_USERNAME }}
-          host: ${{ env.SSH_HOSTNAME }}
-          port: ${{ env.SSH_PORT }}
-          script: |
-            cd /path/to/project
-            git pull
-            npm install
-            npm test
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: pipeline-react-app.sh
+          target: /root/pipeline-react-app.sh
+      - name: Execute deployment script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: sudo /root/pipeline-react-app.sh
+            
             
 # O código acima é um exemplo de um fluxo de trabalho de CI/CD para uma aplicação React em que, quando 
 # um desenvolvedor faz uma alteração no branch "main" e envia um pull request, o código é construído e 
